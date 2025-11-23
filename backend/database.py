@@ -29,8 +29,6 @@ def create_new_user(username):
         }
     )
 
-
-
 def create_new_trip(user_id):
     new_trip_id = generate_id()
     trip_collection.insert_one(
@@ -52,7 +50,9 @@ def add_location(trip_id, location_details):
 def update_location(trip_id, location_id, location_details):
     trip_collection.update_one({"trip_id": trip_id, "locations.location_id": location_id}, {"$set": {"locations.$": location_details}})
 
-
+def add_photos(trip_id, photo_url):
+    trip_collection.update_one({"trip_id": trip_id}, 
+                                {"$push": {"photos": photo_url}})
 
 # Create unique indexs
 # user_collection.create_index("user_id", unique=True)

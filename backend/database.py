@@ -31,4 +31,23 @@ def create_new_user(username):
 
 
 
+
+def create_new_trip(user_id):
+    new_trip_id = generate_id()
+    trip_collection.insert_one(
+        {
+            "name": "Untitled Trip",
+            "trip_id": new_trip_id,
+            "user_id": user_id,
+            "photos": []
+        }
+    )
+
+    user_collection.update_one({"user_id": user_id}, {"$push": {"trips": new_trip_id}})
+
+
+
+# Create a unique index on user_id
+# user_collection.create_index("user_id", unique=True)
+
 print("Connected!") 

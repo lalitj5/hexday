@@ -66,17 +66,34 @@ def update_location(trip_id, location_id, location_details):
     trip_collection.update_one({"trip_id": trip_id, "locations.location_id": location_id}, {"$set": {"locations.$": location_details}})
 
 def add_photos(trip_id, file_object): # File object is whatever is returned by Flask...
+    file_id = fs.put(
+        file_object,
+        filename=file_object.filename,
+        content_type=file_object.content_type
+    )
 
-    file_id = fs.put(file_object, filename=file_object.filename)
+    # Convert ObjectId to string before storing
+    trip_collection.update_one({"trip_id": trip_id},
+                                {"$push": {"photos": str(file_id)}})
+    return file_id
 
-    trip_collection.update_one({"trip_id": trip_id}, 
-                                {"$push": {"photos": file_id}})
-    
+def get_photo(file_id):
+    try:
+        file_data = fs.get(file_id)
+        return {
+            'data': file_data.read(),
+            'filename': file_data.filename,
+            'content_type': file_data.content_type
+        }
+    except Exception as e:
+        print(f"Error retrieving file {file_id}: {e}")
+        return None
+
 def get_photos(trip_id):
     trip = trip_collection.find_one({"trip_id": trip_id})
     if not trip:
         return []
-    
+
     photos = []
     for file_id in trip.get("photos", []):
         try:
@@ -86,7 +103,7 @@ def get_photos(trip_id):
             # Handle case where file might not exist in GridFS
             print(f"Error retrieving file {file_id}: {e}")
             continue
-    
+
     return photos
     
 

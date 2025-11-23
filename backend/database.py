@@ -39,15 +39,24 @@ def create_new_trip(user_id):
             "name": "Untitled Trip",
             "trip_id": new_trip_id,
             "user_id": user_id,
-            "photos": []
+            "photos": [],
+            "locations": []
         }
     )
 
     user_collection.update_one({"user_id": user_id}, {"$push": {"trips": new_trip_id}})
 
+def add_location(trip_id, location_details):
+    location_details["location_id"] = generate_id
+    trip_collection.update_one({"trip_id": trip_id}, {"$push": {"locations", location_details}})
+
+def update_location(trip_id, location_id, location_details):
+    pass
 
 
-# Create a unique index on user_id
+
+# Create unique indexs
 # user_collection.create_index("user_id", unique=True)
+# trip_collection.trip_index("user_id", unique=True)
 
-print("Connected!") 
+print("Connected!")

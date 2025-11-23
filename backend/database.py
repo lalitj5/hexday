@@ -31,7 +31,6 @@ def create_new_user(username):
 
 
 
-
 def create_new_trip(user_id):
     new_trip_id = generate_id()
     trip_collection.insert_one(

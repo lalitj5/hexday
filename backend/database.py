@@ -25,9 +25,10 @@ def create_new_user(username):
             "username": username,
             "user_id": generate_id(),
             "profile_photo_id": 0,
+            "trips": []
         }
-
-
     )
+
+
 
 print("Connected!") 

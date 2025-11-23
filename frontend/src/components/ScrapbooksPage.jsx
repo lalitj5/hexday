@@ -12,6 +12,9 @@ function ScrapbooksPage({ username, userData, onLogout }) {
   const [slideshowStartIndex, setSlideshowStartIndex] = useState(0)
   const [editingTripId, setEditingTripId] = useState(null)
   const [editedName, setEditedName] = useState('')
+  const [addingLocationToTrip, setAddingLocationToTrip] = useState(null)
+  const [newLocationName, setNewLocationName] = useState('')
+  const [newLocationDate, setNewLocationDate] = useState('')
   const fileInputRef = useRef(null)
 
   useEffect(() => {
@@ -102,7 +105,7 @@ function ScrapbooksPage({ username, userData, onLogout }) {
     setSlideshowOpen(false)
   }
 
-  const startEditingName = (trip, e) => {
+  const startEditingTrip = (trip, e) => {
     e.stopPropagation()
     setEditingTripId(trip.trip_id)
     setEditedName(trip.name)
@@ -148,6 +151,72 @@ function ScrapbooksPage({ username, userData, onLogout }) {
       saveEditedName(tripId, e)
     } else if (e.key === 'Escape') {
       cancelEditingName(e)
+    }
+  }
+
+  const startAddingLocation = (tripId, e) => {
+    e.stopPropagation()
+    setAddingLocationToTrip(tripId)
+    setNewLocationName('')
+    setNewLocationDate('')
+  }
+
+  const cancelAddingLocation = (e) => {
+    e.stopPropagation()
+    setAddingLocationToTrip(null)
+    setNewLocationName('')
+    setNewLocationDate('')
+  }
+
+  const saveNewLocation = async (tripId, e) => {
+    e.stopPropagation()
+
+    if (!newLocationName.trim()) {
+      return
+    }
+
+    try {
+      const response = await fetch(`http://localhost:5000/api/trip/${tripId}/locations`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: newLocationName.trim(),
+          date_visited: newLocationDate
+        }),
+      })
+      const updatedTrip = await response.json()
+
+      setTrips(trips.map(trip =>
+        trip.trip_id === tripId ? updatedTrip : trip
+      ))
+      setAddingLocationToTrip(null)
+      setNewLocationName('')
+      setNewLocationDate('')
+    } catch (error) {
+      console.error('Error adding location:', error)
+    }
+  }
+
+  const deleteLocation = async (tripId, locationId, e) => {
+    e.stopPropagation()
+
+    if (!confirm('Delete this location?')) {
+      return
+    }
+
+    try {
+      const response = await fetch(`http://localhost:5000/api/trip/${tripId}/locations/${locationId}`, {
+        method: 'DELETE',
+      })
+      const updatedTrip = await response.json()
+
+      setTrips(trips.map(trip =>
+        trip.trip_id === tripId ? updatedTrip : trip
+      ))
+    } catch (error) {
+      console.error('Error deleting location:', error)
     }
   }
 
@@ -204,39 +273,7 @@ function ScrapbooksPage({ username, userData, onLogout }) {
                     )}
                   </div>
                   <div className="trip-info">
-                    {editingTripId === trip.trip_id ? (
-                      <div className="trip-name-edit">
-                        <input
-                          type="text"
-                          className="trip-name-input"
-                          value={editedName}
-                          onChange={(e) => setEditedName(e.target.value)}
-                          onKeyDown={(e) => handleNameKeyPress(trip.trip_id, e)}
-                          onClick={(e) => e.stopPropagation()}
-                          autoFocus
-                        />
-                        <button
-                          className="name-edit-save"
-                          onClick={(e) => saveEditedName(trip.trip_id, e)}
-                        >
-                          ✓
-                        </button>
-                        <button
-                          className="name-edit-cancel"
-                          onClick={cancelEditingName}
-                        >
-                          ✕
-                        </button>
-                      </div>
-                    ) : (
-                      <h3
-                        className="trip-name"
-                        onClick={(e) => startEditingName(trip, e)}
-                        title="Click to edit"
-                      >
-                        {trip.name}
-                      </h3>
-                    )}
+                    <h3 className="trip-name">{trip.name}</h3>
                     <div className="trip-stats">
                       <span className="stat">
                         <span className="stat-icon"></span>
@@ -257,18 +294,98 @@ function ScrapbooksPage({ username, userData, onLogout }) {
 
                 {expandedTripId === trip.trip_id && (
                   <div className="trip-card-expanded">
+                    {/* Trip Name Editing */}
+                    {editingTripId === trip.trip_id && (
+                      <div className="expanded-section">
+                        <h4 className="section-title">Edit Trip Name</h4>
+                        <div className="trip-name-edit">
+                          <input
+                            type="text"
+                            className="trip-name-input"
+                            value={editedName}
+                            onChange={(e) => setEditedName(e.target.value)}
+                            onKeyDown={(e) => handleNameKeyPress(trip.trip_id, e)}
+                            onClick={(e) => e.stopPropagation()}
+                            placeholder="Enter trip name"
+                            autoFocus
+                          />
+                          <button
+                            className="name-edit-save"
+                            onClick={(e) => saveEditedName(trip.trip_id, e)}
+                            title="Save (Enter)"
+                          >
+                            ✓
+                          </button>
+                          <button
+                            className="name-edit-cancel"
+                            onClick={cancelEditingName}
+                            title="Cancel (Escape)"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
                     <div className="expanded-section">
                       <h4 className="section-title">Locations</h4>
                       {trip.locations && trip.locations.length > 0 ? (
                         <ul className="locations-list">
                           {trip.locations.map((location) => (
                             <li key={location.location_id} className="location-item">
-                              {location.name || 'Unnamed Location'}
+                              <div className="location-info">
+                                <span className="location-name">{location.name || 'Unnamed Location'}</span>
+                                {location.date_visited && (
+                                  <span className="location-date">{location.date_visited}</span>
+                                )}
+                              </div>
+                              <button
+                                className="location-delete"
+                                onClick={(e) => deleteLocation(trip.trip_id, location.location_id, e)}
+                                title="Delete location"
+                              >
+                                ✕
+                              </button>
                             </li>
                           ))}
                         </ul>
                       ) : (
                         <p className="empty-text">No locations added yet</p>
+                      )}
+
+                      {/* Add Location Form */}
+                      {addingLocationToTrip === trip.trip_id && (
+                        <div className="add-location-form">
+                          <input
+                            type="text"
+                            className="location-name-input"
+                            placeholder="Location name"
+                            value={newLocationName}
+                            onChange={(e) => setNewLocationName(e.target.value)}
+                            onClick={(e) => e.stopPropagation()}
+                          />
+                          <input
+                            type="date"
+                            className="location-date-input"
+                            value={newLocationDate}
+                            onChange={(e) => setNewLocationDate(e.target.value)}
+                            onClick={(e) => e.stopPropagation()}
+                          />
+                          <button
+                            className="location-save"
+                            onClick={(e) => saveNewLocation(trip.trip_id, e)}
+                            title="Save location"
+                          >
+                            ✓
+                          </button>
+                          <button
+                            className="location-cancel"
+                            onClick={cancelAddingLocation}
+                            title="Cancel"
+                          >
+                            ✕
+                          </button>
+                        </div>
                       )}
                     </div>
 
@@ -295,7 +412,12 @@ function ScrapbooksPage({ username, userData, onLogout }) {
                     </div>
 
                     <div className="trip-actions">
-                      <button className="action-button primary">Edit Trip</button>
+                      <button
+                        className="action-button primary"
+                        onClick={(e) => startEditingTrip(trip, e)}
+                      >
+                        {editingTripId === trip.trip_id ? 'Editing...' : 'Edit Trip'}
+                      </button>
                       <button
                         className="action-button secondary"
                         onClick={(e) => handleAddPhotos(trip.trip_id, e)}
@@ -303,7 +425,12 @@ function ScrapbooksPage({ username, userData, onLogout }) {
                       >
                         {uploadingTripId === trip.trip_id ? 'Uploading...' : 'Add Photos'}
                       </button>
-                      <button className="action-button secondary">Add Location</button>
+                      <button
+                        className="action-button secondary"
+                        onClick={(e) => startAddingLocation(trip.trip_id, e)}
+                      >
+                        {addingLocationToTrip === trip.trip_id ? 'Adding...' : 'Add Location'}
+                      </button>
                     </div>
                   </div>
                 )}

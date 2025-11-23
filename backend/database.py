@@ -29,10 +29,11 @@ def create_new_user(username):
         }
     )
 
-# search for user_id
-def get_user(username):
-    user = user_collection.find_one({"username": username})
-    return user
+<<<<<<<<< Temporary merge branch 1
+print("Connected!") 
+=========
+
+
 
 def create_new_trip(user_id):
     new_trip_id = generate_id()
@@ -49,11 +50,11 @@ def create_new_trip(user_id):
     user_collection.update_one({"user_id": user_id}, {"$push": {"trips": new_trip_id}})
 
 def add_location(trip_id, location_details):
-    location_details["location_id"] = generate_id
-    trip_collection.update_one({"trip_id": trip_id}, {"$push": {"locations", location_details}})
+    location_details["location_id"] = generate_id()
+    trip_collection.update_one({"trip_id": trip_id}, {"$push": {"locations": location_details}})
 
 def update_location(trip_id, location_id, location_details):
-    pass
+    trip_collection.update_one({"trip_id": trip_id, "locations.location_id": location_id}, {"$set": {"locations.$": location_details}})
 
 def add_photos(trip_id, photo_url):
     trip_collection.update_one({"trip_id": trip_id}, 
@@ -64,3 +65,4 @@ def add_photos(trip_id, photo_url):
 # trip_collection.trip_index("user_id", unique=True)
 
 print("Connected!")
+>>>>>>>>> Temporary merge branch 2

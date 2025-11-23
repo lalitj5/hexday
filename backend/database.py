@@ -29,11 +29,6 @@ def create_new_user(username):
         }
     )
 
-<<<<<<<<< Temporary merge branch 1
-print("Connected!") 
-=========
-
-
 
 def create_new_trip(user_id):
     new_trip_id = generate_id()
@@ -65,4 +60,3 @@ def add_photos(trip_id, photo_url):
 # trip_collection.trip_index("user_id", unique=True)
 
 print("Connected!")
->>>>>>>>> Temporary merge branch 2

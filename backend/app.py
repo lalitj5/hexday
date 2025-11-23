@@ -5,11 +5,19 @@ from io import BytesIO
 from bson import ObjectId
 
 app = Flask(__name__)
-CORS(app)
+CORS(app, resources={
+    r"/api/*": {
+        "origins": ["http://localhost:3000"],
+        "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+        "allow_headers": ["Content-Type"],
+        "supports_credentials": True
+    }
+})
 
 @app.route("/")
 def hello_world():
     return "Hello World"
+
 
 @app.route("/api/user/<username>", methods=["GET"])
 def get_or_create_user(username):
@@ -94,6 +102,30 @@ def update_trip_name(trip_id):
         return jsonify({"error": "name required"}), 400
 
     database.update_trip_name(trip_id, new_name)
+    trip = database.get_trip(trip_id)
+    return jsonify(trip)
+
+@app.route("/api/trip/<trip_id>/locations", methods=["POST"])
+def add_location(trip_id):
+    data = request.json
+    name = data.get("name")
+    date_visited = data.get("date_visited")
+
+    if not name:
+        return jsonify({"error": "location name required"}), 400
+
+    location_details = {
+        "name": name,
+        "date_visited": date_visited
+    }
+
+    location_id = database.add_location(trip_id, location_details)
+    trip = database.get_trip(trip_id)
+    return jsonify(trip)
+
+@app.route("/api/trip/<trip_id>/locations/<location_id>", methods=["DELETE"])
+def delete_location(trip_id, location_id):
+    database.delete_location(trip_id, location_id)
     trip = database.get_trip(trip_id)
     return jsonify(trip)
 

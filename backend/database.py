@@ -4,7 +4,7 @@ import uuid
 
 # Replace with your connection string
 uri = "mongodb+srv://kxiang644:HexDays@cluster0.cpcw8iv.mongodb.net/"
-client = MongoClient(uri)
+client = MongoClient(uri, tlsAllowInvalidCertificates=True)
 
 # Access a database
 db = client["vacation_scrapbook"]
@@ -26,7 +26,6 @@ def create_new_user(username):
         {
             "username": username,
             "user_id": generate_id(),
-            "profile_photo_id": 0,
             "trips": []
         }
     )
@@ -64,6 +63,13 @@ def update_trip_name(trip_id, new_name):
 def add_location(trip_id, location_details):
     location_details["location_id"] = generate_id()
     trip_collection.update_one({"trip_id": trip_id}, {"$push": {"locations": location_details}})
+    return location_details["location_id"]
+
+def delete_location(trip_id, location_id):
+    trip_collection.update_one(
+        {"trip_id": trip_id},
+        {"$pull": {"locations": {"location_id": location_id}}}
+    )
 
 def update_location(trip_id, location_id, location_details):
     trip_collection.update_one({"trip_id": trip_id, "locations.location_id": location_id}, {"$set": {"locations.$": location_details}})

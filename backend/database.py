@@ -29,4 +29,11 @@ def create_new_user(username):
         }
     )
 
+# search for user_id
+def get_user(username):
+    user = user_collection.find_one({"username": username})
+    return user
+
+
+
 print("Connected!") 

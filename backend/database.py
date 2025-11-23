@@ -13,7 +13,7 @@ db = client["vacation_scrapbook"]
 user_collection = db["users"]
 trip_collection = db["trips"]
 media_collection = db["media"]
-fs = gridfs.GridFS(media_collection)
+fs = gridfs.GridFS(db)
 
 def generate_id():
     return str(uuid.uuid4())

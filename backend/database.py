@@ -29,6 +29,17 @@ def create_new_user(username):
         }
     )
 
+def get_user(username):
+    user = user_collection.find_one({"username": username}, {"_id": 0})
+    return user
+
+def get_user_trips(user_id):
+    trips = list(trip_collection.find({"user_id": user_id}, {"_id": 0}))
+    return trips
+
+def get_trip(trip_id):
+    trip = trip_collection.find_one({"trip_id": trip_id}, {"_id": 0})
+    return trip
 
 def create_new_trip(user_id):
     new_trip_id = generate_id()
@@ -43,6 +54,7 @@ def create_new_trip(user_id):
     )
 
     user_collection.update_one({"user_id": user_id}, {"$push": {"trips": new_trip_id}})
+    return new_trip_id
 
 def add_location(trip_id, location_details):
     location_details["location_id"] = generate_id()
@@ -58,5 +70,3 @@ def add_photos(trip_id, photo_url):
 # Create unique indexs
 # user_collection.create_index("user_id", unique=True)
 # trip_collection.trip_index("user_id", unique=True)
-
-print("Connected!")

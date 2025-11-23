@@ -1,4 +1,5 @@
 from pymongo import MongoClient
+import gridfs
 import uuid
 
 # Replace with your connection string
@@ -12,6 +13,7 @@ db = client["vacation_scrapbook"]
 user_collection = db["users"]
 trip_collection = db["trips"]
 media_collection = db["media"]
+fs = gridfs.GridFS(media_collection)
 
 def generate_id():
     return str(uuid.uuid4())
@@ -63,10 +65,33 @@ def add_location(trip_id, location_details):
 def update_location(trip_id, location_id, location_details):
     trip_collection.update_one({"trip_id": trip_id, "locations.location_id": location_id}, {"$set": {"locations.$": location_details}})
 
-def add_photos(trip_id, photo_url):
+def add_photos(trip_id, file_object): # File object is whatever is returned by Flask...
+
+    file_id = fs.put(file_object, filename=file_object.filename)
+
     trip_collection.update_one({"trip_id": trip_id}, 
-                                {"$push": {"photos": photo_url}})
+                                {"$push": {"photos": file_id}})
+    
+def get_photos(trip_id):
+    trip = trip_collection.find_one({"trip_id": trip_id})
+    if not trip:
+        return []
+    
+    photos = []
+    for file_id in trip.get("photos", []):
+        try:
+            file_data = fs.get(file_id)
+            photos.append(file_data.read())
+        except Exception as e:
+            # Handle case where file might not exist in GridFS
+            print(f"Error retrieving file {file_id}: {e}")
+            continue
+    
+    return photos
+    
 
 # Create unique indexs
 # user_collection.create_index("user_id", unique=True)
 # trip_collection.trip_index("user_id", unique=True)
+
+print("Connected!")

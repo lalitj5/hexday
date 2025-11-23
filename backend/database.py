@@ -58,6 +58,9 @@ def create_new_trip(user_id):
     user_collection.update_one({"user_id": user_id}, {"$push": {"trips": new_trip_id}})
     return new_trip_id
 
+def update_trip_name(trip_id, new_name):
+    trip_collection.update_one({"trip_id": trip_id}, {"$set": {"name": new_name}})
+
 def add_location(trip_id, location_details):
     location_details["location_id"] = generate_id()
     trip_collection.update_one({"trip_id": trip_id}, {"$push": {"locations": location_details}})

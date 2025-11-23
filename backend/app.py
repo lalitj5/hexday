@@ -85,5 +85,17 @@ def get_photo(file_id):
         print(f"Error retrieving photo: {e}")
         return jsonify({"error": "Failed to retrieve photo"}), 500
 
+@app.route("/api/trip/<trip_id>/name", methods=["PUT"])
+def update_trip_name(trip_id):
+    data = request.json
+    new_name = data.get("name")
+
+    if not new_name:
+        return jsonify({"error": "name required"}), 400
+
+    database.update_trip_name(trip_id, new_name)
+    trip = database.get_trip(trip_id)
+    return jsonify(trip)
+
 if __name__ == "__main__":
     app.run(debug=True)

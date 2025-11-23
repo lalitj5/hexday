@@ -1,10 +1,18 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
+import Slideshow from './Slideshow'
 import './ScrapbooksPage.css'
 
 function ScrapbooksPage({ username, userData, onLogout }) {
   const [trips, setTrips] = useState([])
   const [expandedTripId, setExpandedTripId] = useState(null)
   const [isCreating, setIsCreating] = useState(false)
+  const [uploadingTripId, setUploadingTripId] = useState(null)
+  const [slideshowOpen, setSlideshowOpen] = useState(false)
+  const [slideshowPhotos, setSlideshowPhotos] = useState([])
+  const [slideshowStartIndex, setSlideshowStartIndex] = useState(0)
+  const [editingTripId, setEditingTripId] = useState(null)
+  const [editedName, setEditedName] = useState('')
+  const fileInputRef = useRef(null)
 
   useEffect(() => {
     if (username) {
@@ -45,6 +53,102 @@ function ScrapbooksPage({ username, userData, onLogout }) {
 
   const toggleExpand = (tripId) => {
     setExpandedTripId(expandedTripId === tripId ? null : tripId)
+  }
+
+  const handleAddPhotos = (tripId, e) => {
+    e.stopPropagation()
+    setUploadingTripId(tripId)
+    fileInputRef.current?.click()
+  }
+
+  const handleFileSelect = async (e) => {
+    const files = Array.from(e.target.files || [])
+    if (files.length === 0 || !uploadingTripId) return
+
+    const formData = new FormData()
+    files.forEach(file => {
+      formData.append('photos', file)
+    })
+
+    try {
+      const response = await fetch(`http://localhost:5000/api/trip/${uploadingTripId}/photos`, {
+        method: 'POST',
+        body: formData,
+      })
+      const data = await response.json()
+
+      if (data.success) {
+        // Update the trips list with the new trip data
+        setTrips(trips.map(trip =>
+          trip.trip_id === uploadingTripId ? data.trip : trip
+        ))
+      }
+    } catch (error) {
+      console.error('Error uploading photos:', error)
+    } finally {
+      setUploadingTripId(null)
+      e.target.value = '' // Reset file input
+    }
+  }
+
+  const openSlideshow = (photos, startIndex, e) => {
+    e.stopPropagation()
+    setSlideshowPhotos(photos)
+    setSlideshowStartIndex(startIndex)
+    setSlideshowOpen(true)
+  }
+
+  const closeSlideshow = () => {
+    setSlideshowOpen(false)
+  }
+
+  const startEditingName = (trip, e) => {
+    e.stopPropagation()
+    setEditingTripId(trip.trip_id)
+    setEditedName(trip.name)
+  }
+
+  const cancelEditingName = (e) => {
+    e.stopPropagation()
+    setEditingTripId(null)
+    setEditedName('')
+  }
+
+  const saveEditedName = async (tripId, e) => {
+    e.stopPropagation()
+
+    if (!editedName.trim()) {
+      cancelEditingName(e)
+      return
+    }
+
+    try {
+      const response = await fetch(`http://localhost:5000/api/trip/${tripId}/name`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ name: editedName.trim() }),
+      })
+      const updatedTrip = await response.json()
+
+      // Update the trips list with the updated trip
+      setTrips(trips.map(trip =>
+        trip.trip_id === tripId ? updatedTrip : trip
+      ))
+      setEditingTripId(null)
+      setEditedName('')
+    } catch (error) {
+      console.error('Error updating trip name:', error)
+    }
+  }
+
+  const handleNameKeyPress = (tripId, e) => {
+    if (e.key === 'Enter') {
+      saveEditedName(tripId, e)
+    } else if (e.key === 'Escape') {
+      cancelEditingName(e)
+    }
   }
 
   return (
@@ -89,7 +193,7 @@ function ScrapbooksPage({ username, userData, onLogout }) {
                   <div className="trip-cover">
                     {trip.photos && trip.photos.length > 0 ? (
                       <img
-                        src={trip.photos[0]}
+                        src={`http://localhost:5000/api/photo/${trip.photos[0]}`}
                         alt={trip.name}
                         className="cover-image"
                       />
@@ -100,7 +204,39 @@ function ScrapbooksPage({ username, userData, onLogout }) {
                     )}
                   </div>
                   <div className="trip-info">
-                    <h3 className="trip-name">{trip.name}</h3>
+                    {editingTripId === trip.trip_id ? (
+                      <div className="trip-name-edit">
+                        <input
+                          type="text"
+                          className="trip-name-input"
+                          value={editedName}
+                          onChange={(e) => setEditedName(e.target.value)}
+                          onKeyDown={(e) => handleNameKeyPress(trip.trip_id, e)}
+                          onClick={(e) => e.stopPropagation()}
+                          autoFocus
+                        />
+                        <button
+                          className="name-edit-save"
+                          onClick={(e) => saveEditedName(trip.trip_id, e)}
+                        >
+                          ✓
+                        </button>
+                        <button
+                          className="name-edit-cancel"
+                          onClick={cancelEditingName}
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    ) : (
+                      <h3
+                        className="trip-name"
+                        onClick={(e) => startEditingName(trip, e)}
+                        title="Click to edit"
+                      >
+                        {trip.name}
+                      </h3>
+                    )}
                     <div className="trip-stats">
                       <span className="stat">
                         <span className="stat-icon"></span>
@@ -140,9 +276,16 @@ function ScrapbooksPage({ username, userData, onLogout }) {
                       <h4 className="section-title">Photo Gallery</h4>
                       {trip.photos && trip.photos.length > 0 ? (
                         <div className="photo-grid">
-                          {trip.photos.map((photo, index) => (
-                            <div key={index} className="photo-thumbnail">
-                              <img src={photo} alt={`Photo ${index + 1}`} />
+                          {trip.photos.map((photoId, index) => (
+                            <div
+                              key={index}
+                              className="photo-thumbnail"
+                              onClick={(e) => openSlideshow(trip.photos, index, e)}
+                            >
+                              <img
+                                src={`http://localhost:5000/api/photo/${photoId}`}
+                                alt={`Photo ${index + 1}`}
+                              />
                             </div>
                           ))}
                         </div>
@@ -153,7 +296,13 @@ function ScrapbooksPage({ username, userData, onLogout }) {
 
                     <div className="trip-actions">
                       <button className="action-button primary">Edit Trip</button>
-                      <button className="action-button secondary">Add Photos</button>
+                      <button
+                        className="action-button secondary"
+                        onClick={(e) => handleAddPhotos(trip.trip_id, e)}
+                        disabled={uploadingTripId === trip.trip_id}
+                      >
+                        {uploadingTripId === trip.trip_id ? 'Uploading...' : 'Add Photos'}
+                      </button>
                       <button className="action-button secondary">Add Location</button>
                     </div>
                   </div>
@@ -163,6 +312,24 @@ function ScrapbooksPage({ username, userData, onLogout }) {
           </div>
         )}
       </div>
+
+      {/* Hidden file input for photo uploads */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        multiple
+        onChange={handleFileSelect}
+        style={{ display: 'none' }}
+      />
+
+      {/* Slideshow Overlay */}
+      <Slideshow
+        photoIds={slideshowPhotos}
+        isOpen={slideshowOpen}
+        onClose={closeSlideshow}
+        startIndex={slideshowStartIndex}
+      />
     </div>
   )
 }

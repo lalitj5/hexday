@@ -103,11 +103,11 @@ function ScrapbooksPage({ username, userData, onLogout }) {
                     <h3 className="trip-name">{trip.name}</h3>
                     <div className="trip-stats">
                       <span className="stat">
-                        <span className="stat-icon">📷</span>
+                        <span className="stat-icon"></span>
                         {trip.photos?.length || 0} photos
                       </span>
                       <span className="stat">
-                        <span className="stat-icon">📍</span>
+                        <span className="stat-icon"></span>
                         {trip.locations?.length || 0} locations
                       </span>
                     </div>
